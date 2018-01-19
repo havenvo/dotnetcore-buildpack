@@ -2,17 +2,18 @@
 
 function install_dotnet() {
   local BUILD_DIR="$1"
+  local CACHE_DIR="$2"
+  local ZIP_NAME="dotnet-2.1.4.tar.gz"
 
-  # https://github.com/dotnet/core/blob/master/release-notes/download-archives/2.0.5.md
-  curl -sSL -o dotnet.tar.gz https://download.microsoft.com/download/1/1/5/115B762D-2B41-4AF3-9A63-92D9680B9409/dotnet-sdk-2.1.4-linux-x64.tar.gz
-  mkdir -p ${BUILD_DIR}/.heroku/dotnet && tar zxf dotnet.tar.gz -C ${BUILD_DIR}/.heroku/dotnet
+  if [ ! -f $CACHE_DIR/$ZIP_NAME ]; then
+    # https://github.com/dotnet/core/blob/master/release-notes/download-archives/2.0.5.md
+    curl -sSL -o $CACHE_DIR/$ZIP_NAME https://download.microsoft.com/download/1/1/5/115B762D-2B41-4AF3-9A63-92D9680B9409/dotnet-sdk-2.1.4-linux-x64.tar.gz
+  else
+    echo "$ZIP_NAME from cache folder"
+  fi
+
+  mkdir -p ${BUILD_DIR}/.heroku/dotnet && tar zxf $CACHE_DIR/$ZIP_NAME -C ${BUILD_DIR}/.heroku/dotnet
   ln -s ${BUILD_DIR}/.heroku/dotnet /app
-}
-
-function dotnet_cleanup() {
-  local BUILD_DIR="$1"
-  rm /app/dotnet
-  rm -rf ${BUILD_DIR}/.heroku/dotnet
 }
 
 # https://github.com/ddollar/heroku-buildpack-apt
@@ -53,7 +54,7 @@ function apt_install(){
       curl -s -L -z $package_file -o $package_file $package 2>&1 | indent
     else
       topic "Fetching .debs for $package"
-      apt-get $apt_options -y --force-yes -d install --reinstall $package | indent
+      apt-get $apt_options -y --allow-downgrades --allow-remove-essential --allow-change-held-packages -d install --reinstall $package | indent
     fi
   done
   
